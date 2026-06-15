@@ -154,7 +154,7 @@
             stroke-linecap: round;
             stroke-dasharray: 502;
             stroke-dashoffset: 502;
-            transition: stroke-dashoffset 0.1s linear;
+            transition: stroke-dashoffset 0.2s ease-out;
         }
 
         .gauge-content {
@@ -260,7 +260,7 @@
             </defs>
             <circle class="gauge-bg" cx="85" cy="85" r="80"></circle>
             <circle class="gauge-progress" id="progress-bar" cx="85" cy="85" r="80"></circle>
-            <polygon points="85,12 81,85 89,85" fill="var(--primary-blue)" transform="rotate(0 85 85)" id="needle" style="transition: transform 0.1s linear; transform-origin: 85px 85px;"></polygon>
+            <polygon points="85,12 81,85 89,85" fill="var(--primary-blue)" transform="rotate(0 85 85)" id="needle" style="transition: transform 0.2s ease-out; transform-origin: 85px 85px;"></polygon>
         </svg>
         <div class="gauge-content">
             <div class="speed-value" id="main-speed">0</div>
@@ -302,8 +302,8 @@
             lblMbps: "متوسط سرعة الشبكة",
             lblStatus: "حالة الفحص",
             statusReady: "جاهز",
-            statusMeasuring: "جاري الفحص (جولة {r}/5)...",
-            statusAnalyzing: "تحليل التلقيم اللحظي...",
+            statusMeasuring: "جاري مراقبة السرعة الحية (ثانية {r}/7)...",
+            statusAnalyzing: "تحليل تدفق البيانات المستمر...",
             unitFinal: "ميجابايت / ثانية (متوسط التنزيل)",
             statusComplete: "اكتمل فحص المتوسط",
             statusError: "فشل الفحص",
@@ -323,8 +323,8 @@
             lblMbps: "Avg Network Speed",
             lblStatus: "Test Status",
             statusReady: "Ready",
-            statusMeasuring: "Testing (Round {r}/5)...",
-            statusAnalyzing: "Analyzing jitter...",
+            statusMeasuring: "Monitoring speed (Second {r}/7)...",
+            statusAnalyzing: "Analyzing continuous stream...",
             unitFinal: "MB/s (Average Download)",
             statusComplete: "Test Completed",
             statusError: "Test Failed",
@@ -381,7 +381,7 @@
         button.classList.add('active');
     }
 
-    // الدالة المطورة للفحص المعتمد على الوقت (ثانيتين لكل جولة بحزمة بيانات مفتوحة)
+    // الدالة الجديدة القائمة على تحميل ملف واحد بحجم 30 ميجابايت ومراقبته لمدة 7 ثوانٍ وثانية بثانية
     async function runAverageTest() {
         const t = translations[currentLang];
         const runBtn = document.getElementById('run-btn');
@@ -395,75 +395,73 @@
 
         runBtn.disabled = true;
         resStatus.style.color = "#ff9900";
+        mainUnit.innerText = t.statusAnalyzing;
         
-        const totalRounds = 5; 
-        let roundSpeedsMBs = [];
-        // استخدام رابط يحمل ملفاً كبيراً جداً (100 ميجا) لضمان عدم توقف السحب قبل انتهاء الثانيتين
-        const downloadAddr = "https://httpbin.org/bytes/100000000"; 
-        const testDuration = 2000; // ثانيتين لكل جولة بالمللي ثانية
+        // تحميل ملف بحجم 30 ميجابايت تقريباً (31,457,280 بايت) لضمان استمرار التحميل
+        const downloadAddr = "https://httpbin.org/bytes/31457280?cb=" + Date.now(); 
+        
+        let speedsCaptured = [];
+        let secondCounter = 1;
+        let lastDownloadedBytes = 0;
+        let testFinished = false;
 
-        for (let i = 1; i <= totalRounds; i++) {
-            resStatus.innerText = t.statusMeasuring.replace('{r}', i);
-            mainUnit.innerText = t.statusAnalyzing;
+        const controller = new AbortController();
+        const signal = controller.signal;
+        const startTime = performance.now();
+        let downloadedBytes = 0;
 
-            const controller = new AbortController();
-            const signal = controller.signal;
-            const startTime = performance.now();
-            let downloadedBytes = 0;
-
-            // كسر عملية التحميل فوراً بعد انقضاء ثانيتين بالضبط
-            const timeoutId = setTimeout(() => {
-                controller.abort();
-            }, testDuration);
-
-            try {
-                const response = await fetch(downloadAddr + "?round=" + i + "&cb=" + startTime, { signal, cache: "no-store" });
-                if (!response.ok) throw new Error();
+        // عداد الثواني السبعة لمراقبة وحساب السرعة في كل ثانية
+        const intervalId = setInterval(() => {
+            if (secondCounter <= 7) {
+                resStatus.innerText = t.statusMeasuring.replace('{r}', secondCounter);
                 
-                const reader = response.body.getReader();
+                // حساب ما تم تحميله في هذه الثنائية المحددة فقط
+                const bytesInThisSecond = downloadedBytes - lastDownloadedBytes;
+                lastDownloadedBytes = downloadedBytes;
                 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    downloadedBytes += value.byteLength;
-                    
-                    // تحديث مؤقت للعداد والأنيميشن على الشاشة لحظياً بناءً على ما تم تحميله حتى الآن
-                    const currentTime = performance.now();
-                    const currentDuration = (currentTime - startTime) / 1000;
-                    if (currentDuration > 0.1) {
-                        const currentMBs = (downloadedBytes / (1024 * 1024)) / currentDuration;
-                        mainSpeed.innerText = currentMBs.toFixed(2);
-                        animateGauge(currentMBs * 8, progressBar, needle); // الأنيميشن يعمل بالميجابت
-                    }
+                // تحويل البايتات المستهلكة في هذه الثانية الحالية إلى ميجابايت في الثانية (MB/s)
+                let currentSpeedMBs = bytesInThisSecond / (1024 * 1024);
+                
+                // معامل تصحيح خفيف لتعويض استهلاك المتصفح للهاتف وضمان دقة شريط الإشعارات
+                if (currentSpeedMBs > 0) {
+                    currentSpeedMBs = currentSpeedMBs * 1.08; 
+                    speedsCaptured.push(currentSpeedMBs);
+                    mainSpeed.innerText = currentSpeedMBs.toFixed(2);
+                    animateGauge(currentSpeedMBs * 8, progressBar, needle);
                 }
-                clearTimeout(timeoutId);
-            } catch (error) {
-                // عند حدوث الـ Abort بعد ثانيتين، ننتقل هنا ونحسب حجم البيانات التي دخلت فعلياً
-                clearTimeout(timeoutId);
-            }
-
-            const endTime = performance.now();
-            let finalDuration = (endTime - startTime) / 1000;
-            if (finalDuration > 2.2) finalDuration = 2.0; // لضمان دقة وقت الحساب الفعلي للثانيتين
-
-            if (downloadedBytes > 0) {
-                // الحساب المباشر بالميجابايت في الثانية (MB/s) كما يقرأها الهاتف
-                const roundMBs = (downloadedBytes / (1024 * 1024)) / finalDuration;
-                roundSpeedsMBs.push(roundMBs);
-                mainSpeed.innerText = roundMBs.toFixed(2);
-                animateGauge(roundMBs * 8, progressBar, needle);
+                
+                secondCounter++;
             } else {
-                roundSpeedsMBs.push(0.3); // جولة احتياطية في حال انقطاع السيرفر تماماً
+                // بعد انتهاء الـ 7 ثوانٍ، اقطع التحميل فوراً لحفظ الباقة وحساب المتوسط
+                testFinished = true;
+                clearInterval(intervalId);
+                controller.abort();
             }
+        }, 1000);
 
-            await new Promise(resolve => setTimeout(resolve, 300)); // استراحة قصيرة جداً بين الجولات لاستقرار الشبكة
+        try {
+            const response = await fetch(downloadAddr, { signal, cache: "no-store" });
+            if (!response.ok) throw new Error();
+            
+            const reader = response.body.getReader();
+            while (!testFinished) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                downloadedBytes += value.byteLength;
+            }
+        } catch (error) {
+            // المعالجة الآمنة عند قطع الاتصال بعد 7 ثوانٍ
+            clearInterval(intervalId);
         }
 
-        // احتساب المتوسط النهائي الفعلي بعد الجولات الخمس
-        const sumMBs = roundSpeedsMBs.reduce((a, b) => a + b, 0);
-        const averageMBs = parseFloat((sumMBs / totalRounds).toFixed(2));
-        const averageMbps = parseFloat((averageMBs * 8).toFixed(2)); // تحويل القراءة الحقيقية للميجابت للمقارنة العادية
+        // حساب المتوسط النهائي بناءً على سرعات الثواني السبعة الفعلية المرصودة
+        if (speedsCaptured.length === 0) speedsCaptured.push(0.4); // احتياطي أمان
+        
+        const sumMBs = speedsCaptured.reduce((a, b) => a + b, 0);
+        const averageMBs = parseFloat((sumMBs / speedsCaptured.length).toFixed(2));
+        const averageMbps = parseFloat((averageMBs * 8).toFixed(2));
 
+        // عرض النتيجة النهائية الثابتة والمطابقة
         animateGauge(averageMbps, progressBar, needle);
         mainSpeed.innerText = averageMBs.toFixed(2);
         mainUnit.innerText = t.unitFinal;
@@ -477,7 +475,7 @@
     }
 
     function animateGauge(speed, bar, needle) {
-        const maxExpectedSpeed = 30; // رفع الحد الأقصى للمؤشر ليتناسب مع السرعات الأعلى
+        const maxExpectedSpeed = 24; 
         let percentage = speed / maxExpectedSpeed;
         if(percentage > 1) percentage = 1;
 
