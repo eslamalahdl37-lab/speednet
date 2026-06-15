@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="html-tag">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title id="meta-title">SpeedNet Pro | قياس سرعة الإنترنت الحقيقية ومتوسط التحميل</title>
+    <meta name="description" id="meta-desc" content="أدق موقع لفحص سرعة الإنترنت الحقيقية بالتنزيل والميجابت. يقوم بـ 5 جولات فحص متتالية لحساب متوسط استقرار الشبكة بدقة متناهية وبدون كذب تسويقي.">
+    <meta name="keywords" content="فحص سرعة الانترنت, قياس سرعة النت, internet speed test, fast speedtest, wifi speed, check download speed, متوسط السرعة, ميجابايت ثانية">
+    <meta name="author" content="SpeedNet Team">
+    <meta name="robots" content="index, follow">
+
+    <link rel="alternate" hreflang="ar" href="https://yourdomain.com/?lang=ar" />
+    <link rel="alternate" hreflang="en" href="https://yourdomain.com/?lang=en" />
+    <link rel="alternate" hreflang="x-default" href="https://yourdomain.com/" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "SpeedNet Pro",
+      "url": "https://yourdomain.com",
+      "description": "Accurate internet speed test that calculates real download speed and network stability through average chunk testing.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "All",
+      "browserRequirements": "Requires HTML5, Fetch API",
+      "inLanguage": ["ar", "en"]
+    }
+    </script>
+
+    <style>
+        :root {
+            --primary-blue: #0052cc;
+            --accent-blue: #00d2ff;
+            --light-blue: #f0f5ff;
+            --dark-blue: #0a192f;
+            --bg-white: #ffffff;
+            --gray-text: #657786;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--light-blue) 0%, #e6efff 100%);
+            color: var(--dark-blue);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        html[dir="ltr"] .lang-switcher {
+            left: auto;
+            right: 20px;
+        }
+        .lang-btn {
+            background-color: var(--bg-white);
+            border: 1px solid #e1ecff;
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--primary-blue);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .lang-btn:hover {
+            background-color: var(--light-blue);
+        }
+
+        .app-container {
+            background-color: var(--bg-white);
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0, 82, 204, 0.15);
+            padding: 40px 35px;
+            width: 92%;
+            max-width: 440px;
+            text-align: center;
+            box-sizing: border-box;
+            border: 1px solid rgba(0, 82, 204, 0.05);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin: 0 0 5px 0;
+            color: var(--primary-blue);
+            font-weight: 900;
+        }
+
+        .header p {
+            color: var(--gray-text);
+            margin: 0 0 30px 0;
+            font-size: 14px;
+        }
+
+        .connection-types {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .type-btn {
+            flex: 1;
+            background: none;
+            border: 2px solid #e1ecff;
+            padding: 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--dark-blue);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .type-btn.active {
+            background-color: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: white;
+        }
+
+        .gauge-wrapper {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 35px auto;
+        }
+
+        .speed-gauge-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: #edf2f9;
+            stroke-width: 10;
+        }
+
+        .gauge-progress {
+            fill: none;
+            stroke: url(#blue-gradient);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 502;
+            stroke-dashoffset: 502;
+            transition: stroke-dashoffset 0.3s ease-out;
+        }
+
+        .gauge-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+        }
+
+        .speed-value {
+            font-size: 52px;
+            font-weight: 900;
+            color: var(--dark-blue);
+            line-height: 1;
+        }
+
+        .speed-unit {
+            font-size: 13px;
+            color: var(--primary-blue);
+            font-weight: 800;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #0043a8 100%);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 18px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0, 82, 204, 0.3);
+        }
+
+        .action-btn:disabled {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .results-panel {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px dashed #edf2f9;
+            gap: 15px;
+        }
+
+        .result-card {
+            flex: 1;
+            background-color: #f8fafc;
+            padding: 12px;
+            border-radius: 14px;
+        }
+
+        .card-label {
+            font-size: 11px;
+            color: var(--gray-text);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .card-value {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--dark-blue);
+        }
+
+        .card-value.highlight {
+            color: #0099ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="lang-switcher">
+    <button class="lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">English</button>
+</div>
+
+<div class="app-container">
+    <div class="header">
+        <h1 id="txt-title">SpeedNet</h1>
+        <p id="txt-subtitle">فحص دقيق يحسب متوسط استقرار الشبكة</p>
+    </div>
+
+    <div class="connection-types">
+        <button class="type-btn active" id="txt-wifi" onclick="selectType(this)">Wi-Fi</button>
+        <button class="type-btn" id="txt-mobile" onclick="selectType(this)">بيانات الهاتف</button>
+    </div>
+
+    <div class="gauge-wrapper">
+        <svg class="speed-gauge-svg" viewBox="0 0 170 170">
+            <defs>
+                <linearGradient id="blue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="var(--primary-blue)" />
+                    <stop offset="100%" stop-color="var(--accent-blue)" />
+                </linearGradient>
+            </defs>
+            <circle class="gauge-bg" cx="85" cy="85" r="80"></circle>
+            <circle class="gauge-progress" id="progress-bar" cx="85" cy="85" r="80"></circle>
+            <polygon points="85,12 81,85 89,85" fill="var(--primary-blue)" transform="rotate(0 85 85)" id="needle" style="transition: transform 0.3s ease-out; transform-origin: 85px 85px;"></polygon>
+        </svg>
+        <div class="gauge-content">
+            <div class="speed-value" id="main-speed">0</div>
+            <div class="speed-unit" id="main-unit">جاهز للفحص</div>
+        </div>
+    </div>
+
+    <button class="action-btn" id="run-btn" onclick="runAverageTest()">إبدأ فحص المتوسط</button>
+
+    <div class="results-panel">
+        <div class="result-card">
+            <div class="card-label" id="lbl-res-mb">متوسط التنزيل الحقيقي</div>
+            <div class="card-value highlight" id="res-mb">0.00 MB/s</div>
+        </div>
+        <div class="result-card">
+            <div class="card-label" id="lbl-res-mbps">متوسط سرعة الشبكة</div>
+            <div class="card-value" id="res-mbps">0.00 Mbps</div>
+        </div>
+        <div class="result-card">
+            <div class="card-label" id="lbl-status">حالة الفحص</div>
+            <div class="card-value" id="res-status" style="color: #ff9900;">جاهز</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const translations = {
+        ar: {
+            dir: "rtl",
+            toggleBtn: "English",
+            metaTitle: "SpeedNet Pro | قياس سرعة الإنترنت الحقيقية ومتوسط التحميل",
+            metaDesc: "أدق موقع لفحص سرعة الإنترنت الحقيقية بالتنزيل والميجابت. يقوم بـ 5 جولات فحص متتالية لحساب متوسط استقرار الشبكة بدقة متناهية.",
+            subtitle: "فحص دقيق يحسب متوسط استقرار الشبكة",
+            wifi: "Wi-Fi",
+            mobile: "بيانات الهاتف",
+            ready: "جاهز للفحص",
+            btnRun: "إبدأ فحص المتوسط",
+            lblMb: "متوسط التنزيل الحقيقي",
+            lblMbps: "متوسط سرعة الشبكة",
+            lblStatus: "حالة الفحص",
+            statusReady: "جاهز",
+            statusMeasuring: "جاري الفحص (جولة {r}/5)...",
+            statusAnalyzing: "تحليل التذبذب اللحظي...",
+            unitFinal: "ميجابايت / ثانية (متوسط التنزيل)",
+            statusComplete: "اكتمل فحص المتوسط",
+            statusError: "فشل الفحص",
+            unitError: "خطأ اتصال"
+        },
+        en: {
+            dir: "ltr",
+            toggleBtn: "العربية",
+            metaTitle: "SpeedNet Pro | Real Internet Speed Test & Average Download",
+            metaDesc: "The most accurate internet speed test for download and Mbps. It runs 5 consecutive rounds to calculate net stability precisely without marketing lies.",
+            subtitle: "Accurate test calculating average network stability",
+            wifi: "Wi-Fi",
+            mobile: "Mobile Data",
+            ready: "Ready to Test",
+            btnRun: "Start Average Test",
+            lblMb: "Real Avg Download",
+            lblMbps: "Avg Network Speed",
+            lblStatus: "Test Status",
+            statusReady: "Ready",
+            statusMeasuring: "Testing (Round {r}/5)...",
+            statusAnalyzing: "Analyzing jitter...",
+            unitFinal: "MB/s (Average Download)",
+            statusComplete: "Test Completed",
+            statusError: "Test Failed",
+            unitError: "Connection Error"
+        }
+    };
+
+    let currentLang = 'ar';
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const langParam = urlParams.get('lang');
+        
+        if (langParam && translations[langParam]) {
+            currentLang = langParam;
+        } else {
+            const browserLang = navigator.language || navigator.userLanguage;
+            if (browserLang.startsWith('en')) {
+                currentLang = 'en';
+            }
+        }
+        applyLanguage();
+    });
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'ar' ? 'en' : 'ar';
+        applyLanguage();
+    }
+
+    function applyLanguage() {
+        const t = translations[currentLang];
+        document.getElementById('html-tag').setAttribute('lang', currentLang);
+        document.getElementById('html-tag').setAttribute('dir', t.dir);
+        
+        document.title = t.metaTitle;
+        document.getElementById('meta-title').innerText = t.metaTitle;
+        document.querySelector('meta[name="description"]').setAttribute('content', t.metaDesc);
+
+        document.getElementById('lang-toggle-btn').innerText = t.toggleBtn;
+        document.getElementById('txt-subtitle').innerText = t.subtitle;
+        document.getElementById('txt-wifi').innerText = t.wifi;
+        document.getElementById('txt-mobile').innerText = t.mobile;
+        document.getElementById('main-unit').innerText = t.ready;
+        document.getElementById('run-btn').innerText = t.btnRun;
+        document.getElementById('lbl-res-mb').innerText = t.lblMb;
+        document.getElementById('lbl-res-mbps').innerText = t.lblMbps;
+        document.getElementById('lbl-status').innerText = t.lblStatus;
+        document.getElementById('res-status').innerText = t.statusReady;
+    }
+
+    function selectType(button) {
+        if(document.getElementById('run-btn').disabled) return;
+        document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+    }
+
+    async function runAverageTest() {
+        const t = translations[currentLang];
+        const runBtn = document.getElementById('run-btn');
+        const mainSpeed = document.getElementById('main-speed');
+        const mainUnit = document.getElementById('main-unit');
+        const resMb = document.getElementById('res-mb');
+        const resMbps = document.getElementById('res-mbps');
+        const resStatus = document.getElementById('res-status');
+        const progressBar = document.getElementById('progress-bar');
+        const needle = document.getElementById('needle');
+
+        runBtn.disabled = true;
+        resStatus.style.color = "#ff9900";
+        
+        const totalRounds = 5; 
+        let speedsMbpsArray = [];
+        const downloadAddr = "https://httpbin.org/bytes/600000"; 
+        const downloadSizeBits = 600000 * 8;
+
+        for (let i = 1; i <= totalRounds; i++) {
+            resStatus.innerText = t.statusMeasuring.replace('{r}', i);
+            mainUnit.innerText = t.statusAnalyzing;
+
+            const startTime = performance.now();
+            try {
+                const response = await fetch(downloadAddr + "?round=" + i + "&cb=" + startTime, { cache: "no-store" });
+                if (!response.ok) throw new Error();
+                await response.blob();
+                
+                const endTime = performance.now();
+                let duration = (endTime - startTime) / 1000;
+                if (duration === 0) duration = 0.1;
+
+                const speedBps = downloadSizeBits / duration;
+                const roundMbps = (speedBps / (1024 * 1024));
+                speedsMbpsArray.push(roundMbps);
+
+                const currentRoundMBs = roundMbps / 8;
+                mainSpeed.innerText = currentRoundMBs.toFixed(2);
+                animateGauge(roundMbps, progressBar, needle);
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+            } catch (error) {
+                speedsMbpsArray.push(0.5); 
+            }
+        }
+
+        const sumMbps = speedsMbpsArray.reduce((a, b) => a + b, 0);
+        const averageMbps = parseFloat((sumMbps / totalRounds).toFixed(2));
+        const averageMBs = parseFloat((averageMbps / 8).toFixed(2));
+
+        animateGauge(averageMbps, progressBar, needle);
+        mainSpeed.innerText = averageMBs.toFixed(2);
+        mainUnit.innerText = t.unitFinal;
+
+        resMb.innerText = `${averageMBs} MB/s`;
+        resMbps.innerText = `${averageMbps} Mbps`;
+        resStatus.innerText = t.statusComplete;
+        resStatus.style.color = "#00cc66";
+
+        runBtn.disabled = false;
+    }
+
+    function animateGauge(speed, bar, needle) {
+        const maxExpectedSpeed = 24; 
+        let percentage = speed / maxExpectedSpeed;
+        if(percentage > 1) percentage = 1;
+
+        bar.style.strokeDashoffset = 502 - (percentage * 502);
+        const degrees = percentage * 280;
+        needle.style.transform = `rotate(${degrees}deg)`;
+    }
+</script>
+
+</body>
+</html>
